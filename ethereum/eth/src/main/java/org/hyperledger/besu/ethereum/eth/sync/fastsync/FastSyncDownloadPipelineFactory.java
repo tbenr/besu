@@ -145,6 +145,8 @@ public class FastSyncDownloadPipelineFactory implements DownloadPipelineFactory 
             ethContext,
             fastSyncState.getPivotBlockHeader().get());
 
+    final FastAndSnapImportBlocksStep importBlocksStep = new FastAndSnapImportBlocksStep(protocolContext.getBlockchain());
+
     return PipelineBuilder.createPipelineFrom(
             "fetchCheckpoints",
             checkpointRangeSource,
@@ -162,7 +164,8 @@ public class FastSyncDownloadPipelineFactory implements DownloadPipelineFactory 
         .inBatches(headerRequestSize)
         .thenProcessAsyncOrdered("downloadBodies", downloadBodiesStep, downloaderParallelism)
         .thenProcessAsyncOrdered("downloadReceipts", downloadReceiptsStep, downloaderParallelism)
-        .andFinishWith("importBlock", importBlockStep);
+            .thenProcessInParallel("importBlocks", importBlocksStep, downloaderParallelism)
+            .andFinishWith( "setLastBoundHeaders", blocks -> { } );
   }
 
   protected BlockHeader getCommonAncestor(final SyncTarget syncTarget) {
